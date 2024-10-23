@@ -982,11 +982,13 @@ export const createSecretKey = async (userId, secretOneLinkKey) => {
 
 export const googleLogin = async (credential) => {
 	try {
+		const data = jwt.decode(credential);
+		// console.log("data", data);
 		const { email } = jwt.decode(credential);
 		const user = await UserModel.findOne({ email: email });
 		if (!user) {
 			return {
-				status: 404,
+				status: 202,
 				message: "User not found.",
 			};
 		}
@@ -995,7 +997,7 @@ export const googleLogin = async (credential) => {
 		return {
 			status: 200,
 			message: "Google Login successfull",
-			data: user,
+			user: user,
 			token: token,
 		};
 	} catch (error) {
@@ -1003,6 +1005,37 @@ export const googleLogin = async (credential) => {
 		return {
 			status: 500,
 			message: "An error occurred while login using google.",
+		};
+	}
+};
+
+export const googleRegister = async (data) => {
+	try {
+		const user = await UserModel.findOne({ email: data.email });
+		if (user) {
+			return {
+				status: 202,
+				message: "User already exists.",
+			};
+		}
+		const newUser = new UserModel(data);
+		await newUser.save();
+		const token = jwt.sign(
+			{ userId: newUser._id, email: newUser.email },
+			secretKey
+		);
+		newUser.password = undefined;
+		return {
+			status: 200,
+			message: "Google Register successfull",
+			user: newUser,
+			token: token,
+		};
+	} catch (error) {
+		console.error("Error Register:", error);
+		return {
+			status: 500,
+			message: "An error occurred while register using google.",
 		};
 	}
 };
